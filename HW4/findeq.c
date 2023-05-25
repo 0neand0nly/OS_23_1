@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #define MAX_THREADS 64
 #define DEFAULT_BYTES 1024
@@ -9,57 +11,53 @@
 
 int numThreads;
 int minSize = DEFAULT_BYTES;
-char* outputPath;
-int file_out =0;
+char *outputPath;
+int file_out = 0;
 
-
-typedef struct 
+typedef struct
 {
     char paths[MAX_FILES][MAX_PATH_LENGTH];
     int count;
 } FileList;
 
-
-typedef struct 
+typedef struct
 {
-    FileList * FileList;
+    FileList *FileList;
     int start;
     int end;
-}ThreadArgs;
+} ThreadArgs;
 
-
-
-void getinputs(int argc, char * argv[])
+void getinputs(int argc, char *argv[])
 {
-    for(int i=1;i<argc;i++)
+    for (int i = 1; i < argc - 1; i++)
     {
-        if(strcmp(argv[i],"-t")==0)
+        if (strcmp(argv[i], "-t") == 0)
         {
             i++;
-            numThreads= atoi(argv[i]);
+            numThreads = atoi(argv[i]);
 
-            #ifdef DEBUG
-            printf("Num Threads: %d\n",numThreads);
-            #endif
+#ifdef DEBUG
+            printf("Num Threads: %d\n", numThreads);
+#endif
         }
 
-        if(strcmp(argv[i],"-m")==0)
+        if (strcmp(argv[i], "-m") == 0)
         {
             i++;
             minSize = atoi(argv[i]);
 
-            #ifdef DEBUG
-            printf("Min Bytes: %d\n",minSize);
-            #endif
+#ifdef DEBUG
+            printf("Min Bytes: %d\n", minSize);
+#endif
         }
 
-        if(strcmp(argv[i],"-o")==0)
+        if (strcmp(argv[i], "-o") == 0)
         {
             i++;
-            outputPath = argv[i];
+            strcpy(outputPath, argv[i]);
 
             // change the prog to produce output via file
-            file_out =1;
+            file_out = 1;
         }
         else
         {
@@ -69,15 +67,53 @@ void getinputs(int argc, char * argv[])
     }
 }
 
+void traverseDirectory(const char *dir, FileList *filelist)
+{
+    struct dirent *entry;
+    DIR *dp;
 
-int main(int argc, char* argv[])
+    dp = opendir(dir);
+
+    if (dp == NULL)
+    {
+        perror("opendir");
+        return;
+    }
+
+    while ((entry = readdir(dp)))
+    {
+        struct stat statbuf;
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+            continue;
+
+        char path[MAX_PATH_LENGTH];
+        snprintf(path, sizeof(path), "%S%S", dir, entry->d_name);
+
+        stat(path, &statbuf);
+
+        if (S_ISDIR(statbuf.st_mode))
+        {
+            traverseDirectory(path, filelist);
+        }
+        else
+        {
+            strncpy(filelist->paths[filelist->count++], path, MAX_PATH_LENGTH);
+        }
+    }
+    closedir(dp);
+}
+
+int main(int argc, char *argv[])
 {
     getinputs(argc, argv);
+    const char *dir = argv[argc - 1];
 
     FileList filelist;
-    filelist.count=0;
+    filelist.count = 0;
 
+    traverseDirectory(dir,&filelist);
 
+    
 
     return 0;
 }

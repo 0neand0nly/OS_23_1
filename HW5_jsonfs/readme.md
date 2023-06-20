@@ -20,7 +20,8 @@ JsonFS is a program to implement file system at userlevel based on a strucuture 
 1. clone this repository using:
 
 ```
-$ git clone https://github.com/0neand0nly/OS_HW4.git
+$ git clone https://github.com/0neand0nly/OS_23_1.git
+then cd to HW5_jsonfs
 ```
 
 2. Compile and run

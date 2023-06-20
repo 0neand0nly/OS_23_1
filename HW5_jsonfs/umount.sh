@@ -1,0 +1,1 @@
+sudo fusermount -u ./mnt
